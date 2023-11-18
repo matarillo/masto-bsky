@@ -23,16 +23,27 @@ export const bluesky = (url, identifier, password) => {
             loggedIn = true;
         }
     }
-    const uploadBlob = async (/** @type { ArrayBuffer } */image) => {
+    /**
+     * @typedef { {ref: string, mimeType: string, size: number} } UploadedBlob
+     * @param { ArrayBuffer } image 
+     * @returns { Promise<UploadedBlob> }
+     */
+    const uploadBlob = async (image) => {
         const res = await agent.uploadBlob(image, { encoding: "image/png" });
         const blob = res.data.blob;
         return {
-            link: blob.ref.toString(),
+            ref: blob.ref.toString(),
             mimeType: blob.mimeType,
             size: blob.size
         };
     }
-    const post = async ({ url, title, description, blob }) => {
+    /**
+     * @param { string } url 
+     * @param { string } title 
+     * @param { string } description 
+     * @param { UploadedBlob | null } blob 
+     */
+    const post = async (url, title, description, blob) => {
         const embed = {
             $type: "app.bsky.embed.external",
             external: {
