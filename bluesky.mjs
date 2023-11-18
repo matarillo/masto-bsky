@@ -75,7 +75,7 @@ export const bluesky = (url, identifier, password) => {
         async postLinkCard({ url, title, description, image }) {
             await ensureLogin();
             const blob = (image) ? await uploadBlob(image) : null;
-            await post(title, url, description, blob);
+            await post(url, title, description, blob);
         }
     };
 }
