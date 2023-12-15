@@ -32,6 +32,9 @@ export const mastodon = (url, accessToken) => {
         async *getStatuses(userId, minStatusId) {
             const statuses = await masto.v1.accounts.$select(userId).statuses.list({ minId: minStatusId });
             for (const status of statuses.reverse()) {
+                if (status.reblog) {
+                    continue;
+                }
                 const id = status.id;
                 const url = status.url;
                 const title = `${status.account.displayName} (${formatAccount(status.account.url)})`;
