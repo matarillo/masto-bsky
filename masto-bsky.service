@@ -2,8 +2,8 @@
 Description=Run masto-bsky script
 
 [Service]
-User=user
-ExecStart=/home/user/masto-bsky/main.sh
+User=nvm
+ExecStart=/home/nvm/masto-bsky/main.sh
 
 [Install]
 WantedBy=default.target
