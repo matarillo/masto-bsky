@@ -172,7 +172,7 @@ export const mastodon = (url, accessToken) => {
           continue;
         }
         const post = await createPost(status);
-        console.log(`TRACE: mastodon status ${status.id} is a ${status.command ?? 'plain post'}`)
+        console.log(`TRACE: mastodon status ${status.id} is a ${post?.command?.type ?? 'Plain Post'}`)
         yield post;
       }
     },

@@ -27,14 +27,19 @@ const blueskyClient = bluesky(
 await blueskyClient.login();
 
 for await (const post of mastodonClient.getPosts(matarilloUserId, lastTootId)) {
-  if (post?.command?.type === "Reply") {
-    await blueskyClient.reply(post.command.postUrl, post.content);
-  } else if (post?.command?.type === "Repost") {
-    await blueskyClient.repost(post.command.postUrl);
-  } else if (post?.command?.type === "Quote") {
-    await blueskyClient.quote(post.command.postUrl, post.content);
-  } else {
-    await blueskyClient.post(post.content, post.card);
+  try {
+    if (post?.command?.type === "Reply") {
+      await blueskyClient.reply(post.command.postUrl, post.content);
+    } else if (post?.command?.type === "Repost") {
+      await blueskyClient.repost(post.command.postUrl);
+    } else if (post?.command?.type === "Quote") {
+      await blueskyClient.quote(post.command.postUrl, post.content);
+    } else {
+      await blueskyClient.post(post.content, post.card);
+    }
+  } catch (e) {
+    console.log(`bluesky error: ${e}`);
+    throw e;
   }
 
   await fs.writeFile("./last-toot.log", post.statusId, {
