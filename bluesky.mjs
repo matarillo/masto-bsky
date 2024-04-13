@@ -104,12 +104,12 @@ export const bluesky = (url, identifier, password) => {
     }
     return {
       root: {
-        uri: rootPost.uri,
-        cid: rootPost.cid,
+        uri: rootPost.post.uri,
+        cid: rootPost.post.cid,
       },
       parent: {
-        uri: parentPost.uri,
-        cid: parentPost.cid,
+        uri: parentPost.post.uri,
+        cid: parentPost.post.cid,
       },
     };
   };
