@@ -163,13 +163,16 @@ export const mastodon = (url, accessToken) => {
       const statuses = await masto.v1.accounts
         .$select(userId)
         .statuses.list({ minId: minStatusId });
+      console.log(`TRACE: mastodon statuses.length=${statuses.length}`)
       /** @type {Status[]} */
       const reversedStatuses = statuses.toReversed();
       for (const status of reversedStatuses) {
         if (status.reblog) {
+          console.log(`TRACE: mastodon status ${status.id} is a reblog. skipping.`)
           continue;
         }
         const post = await createPost(status);
+        console.log(`TRACE: mastodon status ${status.id} is a ${status.command ?? 'plain post'}`)
         yield post;
       }
     },

@@ -163,6 +163,7 @@ export const bluesky = (url, identifier, password) => {
     async repost(httpsPostUrl) {
       const post = await getPost(httpsPostUrl);
       if (post == null) {
+        console.log(`TRACE: bsky post ${httpsPostUrl} to repost is not found.`)
         return;
       }
       return await agent.repost(post.uri, post.cid);
@@ -175,10 +176,12 @@ export const bluesky = (url, identifier, password) => {
     async reply(httpsPostUrl, textContent) {
       const post = await getPost(httpsPostUrl);
       if (post == null) {
+        console.log(`TRACE: bsky post ${httpsPostUrl} to reply is not found.`)
         return;
       }
       const reply = await getReply(post.uri);
       if (reply == null) {
+        console.log(`TRACE: bsky thread about ${post.uri} is not found.`)
         return;
       }
       const rt = await toRichText(textContent);
@@ -197,6 +200,7 @@ export const bluesky = (url, identifier, password) => {
     async quote(httpsPostUrl, textContent) {
       const post = await getPost(httpsPostUrl);
       if (post == null) {
+        console.log(`TRACE: bsky post ${httpsPostUrl} to quote is not found.`)
         return;
       }
       const rt = await toRichText(textContent);
