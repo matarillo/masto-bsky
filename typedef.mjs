@@ -5,6 +5,7 @@
  * @property { string } content
  * @property { Card? } card
  * @property { Command? } command
+ * @property { Image[]? } attachments
  * 
  * @typedef { Object } Card
  * @property { string } url
@@ -18,7 +19,7 @@
  * @property { number } width
  * @property { number } height
  * @property { ArrayBuffer } data
- * @property { string } encoding
+ * @property { string } contentType
  * 
  * @typedef { Object } Command
  * @property { "Reply" | "Repost" | "Quote" } type

@@ -12,14 +12,16 @@ import axios from "axios";
  */
 
 /**
- * @param { string } url
+ * @param { {image: string, width: number, height: number} } image
+ * @returns { Promise<Image> } image
  */
-const getImage = async (url) => {
-  const res = await axios.get(url, { responseType: "arraybuffer" });
+const getImage = async (image) => {
+  const res = await axios.get(image.image, { responseType: "arraybuffer" });
   /** @type { ArrayBuffer } */
   const data = res.data;
-  const encoding = res.headers.getContentType();
-  return { url, data, encoding };
+  /** @type { string } */
+  const contentType = res.headers.getContentType();
+  return { url: image.image, data, contentType: contentType, width: image.width, height: image.height };
 };
 
 /**
@@ -135,10 +137,22 @@ const createPost = async (status) => {
       title: status.card.title,
       description: status.card.description,
     };
-    if (status.card.image != null) {
-      post.card.image = await getImage(status.card.image);
-      post.card.image.width = status.card.width;
-      post.card.image.height = status.card.height;
+    if (status.card?.image != null) {
+      post.card.image = await getImage(status.card);
+    }
+  }
+  if (status.mediaAttachments != null) {
+    console.log(`TRACE: mastodon mediaAttachments.length=${status.mediaAttachments.length}`)
+    const attachments = status.mediaAttachments.filter(x => x.type === "image");
+    if (attachments.length > 0) {
+      post.attachments = [];
+      for (const attachment of attachments) {
+        post.attachments.push(await getImage({
+          image: attachment.previewUrl,
+          width: attachment.meta.small.width,
+          height: attachment.meta.small.height
+        }));
+      }
     }
   }
 

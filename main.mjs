@@ -35,7 +35,7 @@ for await (const post of mastodonClient.getPosts(matarilloUserId, lastTootId)) {
     } else if (post?.command?.type === "Quote") {
       await blueskyClient.quote(post.command.postUrl, post.content);
     } else {
-      await blueskyClient.post(post.content, post.card);
+      await blueskyClient.post(post.content, post.card, post.attachments);
     }
   } catch (e) {
     console.log(`bluesky error: ${e}`);

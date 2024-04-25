@@ -6,6 +6,7 @@ import atproto from "@atproto/api";
  * @typedef { import("@atproto/api").BlobRef } BlobRef
  * @typedef { import("@atproto/api").AppBskyFeedPost.Record } Record
  * @typedef { import("@atproto/api").AppBskyEmbedExternal.External } EmbedExternal
+ * @typedef { import("@atproto/api").AppBskyEmbedImages.Image } EmbedImage
  * @typedef { import("@atproto/api").ComAtprotoRepoStrongRef.Main } EmbedRecord
  * @typedef { import("@atproto/api").AppBskyFeedDefs } AppBskyFeedDefs
  * @typedef { import("@atproto/api").AppBskyFeedDefs.ThreadViewPost } ThreadViewPost
@@ -51,11 +52,11 @@ export const bluesky = (url, identifier, password) => {
   };
 
   /**
-   * @param { ArrayBuffer } image
-   * @param { string } encoding
+   * @param { ArrayBuffer } data
+   * @param { string } contentType
    */
-  const uploadBlob = async (image, encoding) => {
-    const res = await agent.uploadBlob(image, { encoding: encoding });
+  const uploadBlob = async (data, contentType) => {
+    const res = await agent.uploadBlob(data, { encoding: contentType });
     return res.data.blob;
   };
 
@@ -143,7 +144,7 @@ export const bluesky = (url, identifier, password) => {
       description: card.description,
     };
     if (card.image != null) {
-      const blob = await uploadBlob(card.image.data, card.image.encoding);
+      const blob = await uploadBlob(card.image.data, card.image.contentType);
       external.thumb = blob;
     }
     return {
@@ -151,6 +152,29 @@ export const bluesky = (url, identifier, password) => {
       external: external,
     };
   };
+
+  /**
+   * @param { Image[] } images
+   */
+  const getEmbedImages = async (images) => {
+    if (images == null) {
+      return null;
+    }
+    /** @type { EmbedImage[] } */
+    const embedImages = [];
+    for (const image of images) {
+      const blob = await uploadBlob(image.data, image.contentType);
+      embedImages.push({
+        alt: "",
+        image: blob,
+        aspectRatio: { width: image.width, height: image.height }
+      });
+    }
+    return {
+      $type: "app.bsky.embed.images",
+      images: embedImages,
+    };
+  }
 
   return {
     async login() {
@@ -195,7 +219,6 @@ export const bluesky = (url, identifier, password) => {
     /**
      * @param { string } httpsPostUrl
      * @param { string } textContent
-     * @returns Post
      */
     async quote(httpsPostUrl, textContent) {
       const post = await getPost(httpsPostUrl);
@@ -214,8 +237,9 @@ export const bluesky = (url, identifier, password) => {
     /**
      * @param { string } textContent
      * @param { Card? } card
+     * @param { Image[]? } attachments
      */
-    async post(textContent, card) {
+    async post(textContent, card, attachments) {
       const rt = await toRichText(textContent);
 
       /** @type { Record } */
@@ -223,10 +247,13 @@ export const bluesky = (url, identifier, password) => {
         text: rt.text,
         facets: rt.facets,
       };
-      const embed = await getEmbedExternal(card);
-      if (embed) {
-        record.embed = embed;
+
+      if (card) {
+        record.embed = await getEmbedExternal(card);
+      } else if (attachments) {
+        record.embed = await getEmbedImages(attachments);
       }
+
       return await agent.post(record);
     },
   };
