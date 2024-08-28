@@ -1,6 +1,6 @@
 import { createRestAPIClient } from "masto";
 import { JSDOM } from "jsdom";
-import axios from "axios";
+import Jimp from "jimp";
 
 /**
  * @typedef { import("masto").mastodon.v1.Status } Status
@@ -16,12 +16,12 @@ import axios from "axios";
  * @returns { Promise<Image> } image
  */
 const getImage = async (image) => {
-  const res = await axios.get(image.image, { responseType: "arraybuffer" });
-  /** @type { ArrayBuffer } */
-  const data = res.data;
-  /** @type { string } */
-  const contentType = res.headers.getContentType();
-  return { url: image.image, data, contentType: contentType, width: image.width, height: image.height };
+  const jimpImage = await Jimp.read(image.image);
+  const jimpResized = (jimpImage.getWidth() > 1000) ? jimpImage.resize(1000, Jimp.AUTO) : jimpImage;
+  const buffer = await jimpResized.quality(75).getBufferAsync(Jimp.MIME_JPEG);
+  const data = buffer.buffer;
+  const contentType = Jimp.MIME_JPEG;
+  return { url: image.image, data, contentType: contentType, width: jimpResized.getWidth(), height: jimpResized.getHeight() };
 };
 
 /**
