@@ -1,8 +1,10 @@
+import process from "node:process";
 import * as fs from "node:fs/promises";
 import dotenv from "dotenv";
 import { mastodon } from "./mastodon.mjs";
 import { bluesky } from "./bluesky.mjs";
 
+const dryRun = process.argv.includes("--dry-run");
 const matarilloUserId = "1";
 
 const now = new Date();
@@ -27,25 +29,27 @@ const blueskyClient = bluesky(
 await blueskyClient.login();
 
 for await (const post of mastodonClient.getPosts(matarilloUserId, lastTootId)) {
-  try {
-    if (post?.command?.type === "Reply") {
-      await blueskyClient.reply(post.command.postUrl, post.content);
-    } else if (post?.command?.type === "Repost") {
-      await blueskyClient.repost(post.command.postUrl);
-    } else if (post?.command?.type === "Quote") {
-      await blueskyClient.quote(post.command.postUrl, post.content);
-    } else {
-      await blueskyClient.post(post.content, post.card, post.attachments);
+  if (!dryRun) {
+    try {
+      if (post?.command?.type === "Reply") {
+        await blueskyClient.reply(post.command.postUrl, post.content);
+      } else if (post?.command?.type === "Repost") {
+        await blueskyClient.repost(post.command.postUrl);
+      } else if (post?.command?.type === "Quote") {
+        await blueskyClient.quote(post.command.postUrl, post.content);
+      } else {
+        await blueskyClient.post(post.content, post.card, post.attachments);
+      }
+    } catch (e) {
+      console.log(`bluesky error: ${e}`);
+      throw e;
     }
-  } catch (e) {
-    console.log(`bluesky error: ${e}`);
-    throw e;
-  }
 
-  await fs.writeFile("./last-toot.log", post.statusId, {
-    encoding: "utf8",
-    flush: true,
-  });
+    await fs.writeFile("./last-toot.log", post.statusId, {
+      encoding: "utf8",
+      flush: true,
+    });
+  }
   console.log(`statusId=${post.statusId}`);
   console.log(`content=${post.content}`);
   console.log();
