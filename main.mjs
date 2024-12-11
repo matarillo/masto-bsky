@@ -26,7 +26,9 @@ const blueskyClient = bluesky(
   process.env.BSKY_ID,
   process.env.BSKY_PASSWORD
 );
-await blueskyClient.login();
+if (!dryRun) {
+  await blueskyClient.login();
+}
 
 for await (const post of mastodonClient.getPosts(matarilloUserId, lastTootId)) {
   if (!dryRun) {
