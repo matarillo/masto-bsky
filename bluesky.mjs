@@ -178,7 +178,15 @@ export const bluesky = (url, identifier, password) => {
 
   return {
     async login() {
-      await agent.login({ identifier: identifier, password: password });
+      try {
+        const response = await agent.login({ identifier: identifier, password: password });
+        if (!response.success) {
+          throw new Error(JSON.stringify(response));
+        }
+      } catch (e) {
+        console.log(`bluesky error: ${e}`);
+        throw e;
+      }
     },
 
     /**
