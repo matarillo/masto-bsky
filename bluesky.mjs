@@ -1,7 +1,8 @@
-import atproto from "@atproto/api";
+import { AtpAgent, RichText, BlobRef, AppBskyFeedDefs } from "@atproto/api";
 
 /**
- * @typedef { import("@atproto/api").BskyAgent } BskyAgent
+ * @typedef { import("@atproto/api").Agent } Agent
+ * @typedef { import("@atproto/api").AtpAgent } AtpAgent
  * @typedef { import("@atproto/api").RichText } RichText
  * @typedef { import("@atproto/api").BlobRef } BlobRef
  * @typedef { import("@atproto/api").AppBskyFeedPost.Record } Record
@@ -18,26 +19,20 @@ import atproto from "@atproto/api";
  */
 
 /**
- * @type {{
- *   BskyAgent: BskyAgent,
- *   RichText: RichText,
- *   BlobRef: BlobRef,
- *   AppBskyFeedDefs: AppBskyFeedDefs
- * }}
- */
-const { BskyAgent, RichText, BlobRef, AppBskyFeedDefs } = atproto;
-
-/**
  * @param { string } url
  * @param { string } identifier
  * @param { string } password
  */
 export const bluesky = (url, identifier, password) => {
+
   /**
    * richText.detectFacets(agent) の中で、 agent.resolveHandle() が呼ばれる
-   * @type { BskyAgent }
+   * @type { Agent }
    */
-  const agent = new BskyAgent({ service: url });
+  const agent = new AtpAgent({
+    service: url,
+    persistSession: (evt, session) => {},
+  });
 
   /**
    * @param { string } text
@@ -167,19 +162,22 @@ export const bluesky = (url, identifier, password) => {
       embedImages.push({
         alt: "",
         image: blob,
-        aspectRatio: { width: image.width, height: image.height }
+        aspectRatio: { width: image.width, height: image.height },
       });
     }
     return {
       $type: "app.bsky.embed.images",
       images: embedImages,
     };
-  }
+  };
 
   return {
     async login() {
       try {
-        const response = await agent.login({ identifier: identifier, password: password });
+        const response = await agent.login({
+          identifier: identifier,
+          password: password,
+        });
         if (!response.success) {
           throw new Error(JSON.stringify(response));
         }
@@ -195,7 +193,7 @@ export const bluesky = (url, identifier, password) => {
     async repost(httpsPostUrl) {
       const post = await getPost(httpsPostUrl);
       if (post == null) {
-        console.log(`TRACE: bsky post ${httpsPostUrl} to repost is not found.`)
+        console.log(`TRACE: bsky post ${httpsPostUrl} to repost is not found.`);
         return;
       }
       return await agent.repost(post.uri, post.cid);
@@ -208,12 +206,12 @@ export const bluesky = (url, identifier, password) => {
     async reply(httpsPostUrl, textContent) {
       const post = await getPost(httpsPostUrl);
       if (post == null) {
-        console.log(`TRACE: bsky post ${httpsPostUrl} to reply is not found.`)
+        console.log(`TRACE: bsky post ${httpsPostUrl} to reply is not found.`);
         return;
       }
       const reply = await getReply(post.uri);
       if (reply == null) {
-        console.log(`TRACE: bsky thread about ${post.uri} is not found.`)
+        console.log(`TRACE: bsky thread about ${post.uri} is not found.`);
         return;
       }
       const rt = await toRichText(textContent);
@@ -231,7 +229,7 @@ export const bluesky = (url, identifier, password) => {
     async quote(httpsPostUrl, textContent) {
       const post = await getPost(httpsPostUrl);
       if (post == null) {
-        console.log(`TRACE: bsky post ${httpsPostUrl} to quote is not found.`)
+        console.log(`TRACE: bsky post ${httpsPostUrl} to quote is not found.`);
         return;
       }
       const rt = await toRichText(textContent);
