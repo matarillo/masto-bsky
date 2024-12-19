@@ -171,20 +171,22 @@ export const bluesky = (url, identifier, password) => {
     };
   };
 
+  let loggedIn = false;
+
   return {
     async login() {
-      try {
-        const response = await agent.login({
-          identifier: identifier,
-          password: password,
-        });
-        if (!response.success) {
-          throw new Error(JSON.stringify(response));
-        }
-      } catch (e) {
-        console.log(`bluesky error: ${e}`);
-        throw e;
+      const response = await agent.login({
+        identifier: identifier,
+        password: password,
+      });
+      if (!response.success) {
+        throw new Error(JSON.stringify(response));
       }
+      loggedIn = true;
+    },
+
+    get loggedIn() {
+      return loggedIn;
     },
 
     /**

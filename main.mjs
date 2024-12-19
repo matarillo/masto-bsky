@@ -4,16 +4,21 @@ import dotenv from "dotenv";
 import { mastodon } from "./mastodon.mjs";
 import { bluesky } from "./bluesky.mjs";
 
+/** @typedef {{ id: string, error: string }} LastToot */
+
 const dryRun = process.argv.includes("--dry-run");
 const matarilloUserId = "1";
 
 const now = new Date();
 console.log(now.toISOString());
 
-let lastTootId = (
-  await fs.readFile("./last-toot.log", { encoding: "utf8" })
-).trim();
-console.log(`lastToot: ${lastTootId}`);
+const lastToot = await readLog();
+console.log(`lastToot: ${lastToot.id}`);
+if (lastToot.error != null) {
+  console.log(`last error: ${lastToot.error}`);
+  console.log();
+  process.exit(1);
+}
 
 dotenv.config();
 
@@ -26,13 +31,17 @@ const blueskyClient = bluesky(
   process.env.BSKY_ID,
   process.env.BSKY_PASSWORD
 );
-if (!dryRun) {
-  await blueskyClient.login();
-}
 
-for await (const post of mastodonClient.getPosts(matarilloUserId, lastTootId)) {
+for await (const post of mastodonClient.getPosts(
+  matarilloUserId,
+  lastToot.id
+)) {
   if (!dryRun) {
     try {
+      if (!blueskyClient.loggedIn) {
+        await blueskyClient.login();
+      }
+
       if (post?.command?.type === "Reply") {
         await blueskyClient.reply(post.command.postUrl, post.content);
       } else if (post?.command?.type === "Repost") {
@@ -43,16 +52,35 @@ for await (const post of mastodonClient.getPosts(matarilloUserId, lastTootId)) {
         await blueskyClient.post(post.content, post.card, post.attachments);
       }
     } catch (e) {
-      console.log(`bluesky error: ${e}`);
-      throw e;
+      await writeLog({ id: post.statusId, error: `${e}` });
+      console.log(`error: ${e}`);
+      console.log();
+      process.exit(1);
     }
 
-    await fs.writeFile("./last-toot.log", post.statusId, {
-      encoding: "utf8",
-      flush: true,
-    });
+    await writeLog({ id: post.statusId, error: null });
   }
   console.log(`statusId=${post.statusId}`);
   console.log(`content=${post.content}`);
   console.log();
+}
+
+async function readLog() {
+  const json = await fs.readFile("./last-toot.log", { encoding: "utf8" });
+  const union = JSON.parse(json);
+  /** @type { LastToot } */
+  const lastToot =
+    typeof union === "number" ? { id: union, error: null } : union;
+  return lastToot;
+}
+
+/**
+ * @param {LastToot} lastToot
+ */
+async function writeLog(lastToot) {
+  const json = JSON.stringify(lastToot);
+  await fs.writeFile("./last-toot.log", json, {
+    encoding: "utf8",
+    flush: true,
+  });
 }
