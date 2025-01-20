@@ -7,7 +7,6 @@ import { bluesky } from "./bluesky.mjs";
 /** @typedef {{ id: string, error: string }} LastToot */
 
 const dryRun = process.argv.includes("--dry-run");
-const matarilloUserId = "1";
 
 const now = new Date();
 console.log(now.toISOString());
@@ -31,6 +30,7 @@ const blueskyClient = bluesky(
   process.env.BSKY_ID,
   process.env.BSKY_PASSWORD
 );
+const matarilloUserId = process.env.MASTODON_USER_ID;
 
 for await (const post of mastodonClient.getPosts(
   matarilloUserId,

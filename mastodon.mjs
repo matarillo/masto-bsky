@@ -1,6 +1,6 @@
 import { createRestAPIClient } from "masto";
 import { JSDOM } from "jsdom";
-import { Jimp } from "jimp";
+import sharp from "sharp";
 
 /**
  * @typedef { import("masto").mastodon.v1.Status } Status
@@ -16,12 +16,13 @@ import { Jimp } from "jimp";
  * @returns { Promise<Image> } image
  */
 const getImage = async (image) => {
-  const jimpImage = await Jimp.read(image.image);
-  const jimpResized = (jimpImage.width > 1000) ? jimpImage.resize({w: 1000}) : jimpImage;
-  const buffer = await jimpResized.getBuffer("image/jpeg", { quality: 75 });
+  const imageData = await (await fetch(image.image)).arrayBuffer();
+  const sharpImage = sharp(imageData);
+  const sharpResized = (image.width > 1000) ? sharpImage.resize(1000) : sharpImage;
+  const metadata = await sharpResized.metadata();
+  const buffer = sharpResized.jpeg({ quality: 75 }).toBuffer();
   const data = buffer.buffer;
-  const contentType = Jimp.MIME_JPEG;
-  return { url: image.image, data, contentType: contentType, width: jimpResized.width, height: jimpResized.height };
+  return { url: image.image, data, contentType: "image/jpeg", width: metadata.width, height: metadata.height };
 };
 
 /**
