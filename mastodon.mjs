@@ -20,7 +20,7 @@ const getImage = async (image) => {
   const sharpImage = sharp(imageData);
   const sharpResized = (image.width > 1000) ? sharpImage.resize(1000) : sharpImage;
   const metadata = await sharpResized.metadata();
-  const buffer = sharpResized.jpeg({ quality: 75 }).toBuffer();
+  const buffer = await sharpResized.jpeg({ quality: 75 }).toBuffer();
   const data = buffer.buffer;
   return { url: image.image, data, contentType: "image/jpeg", width: metadata.width, height: metadata.height };
 };
