@@ -36,6 +36,8 @@ for await (const post of mastodonClient.getPosts(
   matarilloUserId,
   lastToot.id
 )) {
+  console.log(`statusId=${post.statusId}`);
+  console.log(`content=${post.content}`);
   if (!dryRun) {
     try {
       if (!blueskyClient.loggedIn) {
@@ -60,8 +62,6 @@ for await (const post of mastodonClient.getPosts(
 
     await writeLog({ id: post.statusId, error: null });
   }
-  console.log(`statusId=${post.statusId}`);
-  console.log(`content=${post.content}`);
   console.log();
 }
 
