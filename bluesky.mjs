@@ -18,12 +18,51 @@ import { AtpAgent, RichText, BlobRef, AppBskyFeedDefs } from "@atproto/api";
  * @typedef { import("./typedef.mjs").Command } Command
  */
 
+
+function truncateTextWithUrl(text, maxLength = 285) {
+  text = text.trimEnd();
+
+  const urlRegex = /([\s]*https?:\/\/[^\s]+[\s]*)/g;
+  let segments = text.split(urlRegex);
+  let urls = [...text.matchAll(urlRegex)].map(match => match[0]);
+  
+  let urlLength = urls.join('').length;
+  let allowedTextLength = maxLength - urlLength;
+  
+  let result = '';
+  let remainingTextLength = allowedTextLength;
+  let truncated = false;
+  
+  for (let i = 0; i < segments.length; i++) {
+      if (i % 2 === 0) { 
+          if (remainingTextLength <= 0) continue;
+          if (segments[i].length > remainingTextLength) {
+              let trunc = segments[i].slice(0, Math.max(1, remainingTextLength - 1)) + '…';
+              result += trunc;
+              remainingTextLength = 0;
+              truncated = true;
+          } else {
+              result += segments[i];
+              remainingTextLength -= segments[i].length;
+          }
+      } else { 
+          result += urls.shift();
+      }
+  }
+
+  if (truncated) {
+    console.log(`TRACE: truncated text=${result}`);
+  }
+  return result;
+}
+
 /**
+ * @param { boolean } dryRun
  * @param { string } url
  * @param { string } identifier
  * @param { string } password
  */
-export const bluesky = (url, identifier, password) => {
+export const bluesky = (dryRun, url, identifier, password) => {
 
   /**
    * richText.detectFacets(agent) の中で、 agent.resolveHandle() が呼ばれる
@@ -40,7 +79,7 @@ export const bluesky = (url, identifier, password) => {
   const toRichText = async (text) => {
     /** @type { RichText } */
     const rt = new RichText({
-      text: text,
+      text: truncateTextWithUrl(text),
     });
     await rt.detectFacets(agent);
     return rt;
@@ -174,7 +213,12 @@ export const bluesky = (url, identifier, password) => {
   let loggedIn = false;
 
   return {
+    get dryRun() {
+      return dryRun;
+    },
+
     async login() {
+      if (dryRun) return;
       const response = await agent.login({
         identifier: identifier,
         password: password,
@@ -198,6 +242,7 @@ export const bluesky = (url, identifier, password) => {
         console.log(`TRACE: bsky post ${httpsPostUrl} to repost is not found.`);
         return;
       }
+      if (dryRun) return;
       return await agent.repost(post.uri, post.cid);
     },
 
@@ -217,6 +262,7 @@ export const bluesky = (url, identifier, password) => {
         return;
       }
       const rt = await toRichText(textContent);
+      if (dryRun) return;
       return await agent.post({
         text: rt.text,
         facets: rt.facets,
@@ -235,6 +281,7 @@ export const bluesky = (url, identifier, password) => {
         return;
       }
       const rt = await toRichText(textContent);
+      if (dryRun) return;
       return await agent.post({
         text: rt.text,
         facets: rt.facets,
@@ -261,7 +308,7 @@ export const bluesky = (url, identifier, password) => {
       } else if (attachments) {
         record.embed = await getEmbedImages(attachments);
       }
-
+      if (dryRun) return;
       return await agent.post(record);
     },
   };

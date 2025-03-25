@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import { mastodon } from "./mastodon.mjs";
 import { bluesky } from "./bluesky.mjs";
 
-/** @typedef {{ id: string, error: string }} LastToot */
+/** @typedef {{ id: string, error: string | null }} LastToot */
 
 const dryRun = process.argv.includes("--dry-run");
 
@@ -26,6 +26,7 @@ const mastodonClient = mastodon(
   process.env.MASTODON_TOKEN
 );
 const blueskyClient = bluesky(
+  dryRun,
   process.env.BSKY_URL,
   process.env.BSKY_ID,
   process.env.BSKY_PASSWORD
@@ -38,39 +39,44 @@ for await (const post of mastodonClient.getPosts(
 )) {
   console.log(`statusId=${post.statusId}`);
   console.log(`content=${post.content}`);
-  if (!dryRun) {
-    try {
-      if (!blueskyClient.loggedIn) {
-        await blueskyClient.login();
-      }
 
-      if (post?.command?.type === "Reply") {
-        await blueskyClient.reply(post.command.postUrl, post.content);
-      } else if (post?.command?.type === "Repost") {
-        await blueskyClient.repost(post.command.postUrl);
-      } else if (post?.command?.type === "Quote") {
-        await blueskyClient.quote(post.command.postUrl, post.content);
-      } else {
-        await blueskyClient.post(post.content, post.card, post.attachments);
-      }
-    } catch (e) {
-      await writeLog({ id: post.statusId, error: `${e}` });
-      console.log(`error: ${e}`);
-      console.log();
-      process.exit(1);
+  try {
+    if (!blueskyClient.loggedIn) {
+      await blueskyClient.login();
     }
 
+    if (post?.command?.type === "Reply") {
+      await blueskyClient.reply(post.command.postUrl, post.content);
+    } else if (post?.command?.type === "Repost") {
+      await blueskyClient.repost(post.command.postUrl);
+    } else if (post?.command?.type === "Quote") {
+      await blueskyClient.quote(post.command.postUrl, post.content);
+    } else {
+      await blueskyClient.post(post.content, post.card, post.attachments);
+    }
+  } catch (e) {
+    await writeLog({ id: post.statusId, error: `${e}` });
+    console.log(`error: ${e}`);
+    console.log();
+    process.exit(1);
+  }
+
+  if (!dryRun) {
     await writeLog({ id: post.statusId, error: null });
   }
   console.log();
 }
 
+/**
+ * @returns  { LastToot }
+ */
 async function readLog() {
   const json = await fs.readFile("./last-toot.log", { encoding: "utf8" });
+  /** @type { LastToot | number } */
   const union = JSON.parse(json);
   /** @type { LastToot } */
   const lastToot =
-    typeof union === "number" ? { id: union, error: null } : union;
+    typeof union === "number" ? { id: union.toString(), error: null } : union;
   return lastToot;
 }
 
